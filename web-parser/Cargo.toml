@@ -1,0 +1,27 @@
+[package]
+name = "web-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+db = { path = "./../db" }
+reqwest = { version = "0.11.22", features = ["blocking", "json"] }
+scraper = "0.18.1"
+lazy_static = "1.4.0"
+log = "0.4"
+pretty_env_logger = "0.5"
+sqlx = {version = "0.7.2", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
+tokio = { version =  "1.8", features = ["rt-multi-thread", "macros"] }
+tokio-test = "*"
+form_urlencoded = "1.0"
+regex = "1"
+test-log = "0.2.13"
+chrono = { version = "0.4.*", features = ["serde"] }
+clap = { version = "4.4.11", features = ["derive"] }
+dotenv="0.15"
+dotenv_codegen="0.15"
+playwright = "0.0.20"
+
+[dev-dependencies]
+env_logger = "*"
+tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}

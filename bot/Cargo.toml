@@ -1,0 +1,25 @@
+[package]
+name = "bot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+db = { path = "./../db" }
+lazy_static = "1.4.0"
+reqwest = { version = "0.11.22", features = ["blocking", "json"] }
+chrono = { version = "0.4.*", features = ["serde", "unstable-locales"] }
+locale = "0.2.2"
+teloxide = { version = "0.12", features = ["macros", "webhooks", "webhooks-axum"] }
+log = "0.4"
+pretty_env_logger = "0.5"
+tokio = { version =  "1.8", features = ["rt-multi-thread", "macros"] }
+sqlx = {version = "0.7.2", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
+async-trait = "0.1.74"
+url = "2.5"
+dotenv="0.15"
+dotenv_codegen="0.15"
+
+# Для преобразования целочисленных типов в enum
+num = "0.4"
+num-derive = "0.4"
+num-traits = "0.2"

@@ -1,0 +1,3 @@
+[workspace]
+members = ["bot", "db", "web-parser"]
+resolver = "2"
