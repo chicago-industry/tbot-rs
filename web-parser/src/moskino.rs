@@ -1,20 +1,54 @@
-// #![allow(unused_imports)]
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unused_mut)]
-
 use chrono::NaiveTime;
-use lazy_static::lazy_static;
 use regex::Regex;
 use scraper::{Element, ElementRef, Html, Selector};
-use std::{error::Error, fmt, io};
+use std::{fmt, io};
+
+use super::lazy_static;
+use super::CustomResult;
 
 pub mod cinema;
 pub mod movie;
-pub mod showtime;
+pub mod session;
 
-type CustomError = Box<dyn Error + Send + Sync>;
-type CustomResult<T> = Result<T, CustomError>;
+pub(super) fn parse_text(node: &ElementRef, selector: &Selector) -> Option<String> {
+    if let Some(result) = node.select(selector).next() {
+        if let Some(text) = result.text().next() {
+            if !text.trim().is_empty() {
+                return Some(text.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
+pub(super) fn parse_num_with_regex<T>(text: &str, regex: &Regex) -> Option<T>
+where
+    T: std::str::FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Debug,
+{
+    if let Some(captures) = regex.captures(text.trim()) {
+        if let Some(matched) = captures.get(1) {
+            if let Ok(parsed) = matched.as_str().parse::<T>() {
+                return Some(parsed);
+            }
+        }
+    }
+    None
+}
+
+pub(super) async fn response(url: &str) -> CustomResult<Html> {
+    let response = reqwest::get(url).await?;
+    let html_content = response.text().await?;
+
+    Ok(scraper::Html::parse_document(&html_content))
+}
+
+pub(super) fn response_blocking(url: &str) -> CustomResult<Html> {
+    let response = reqwest::blocking::get(url)?;
+    let html_content = response.text()?;
+
+    Ok(scraper::Html::parse_document(&html_content))
+}
 
 // <div class="step" data-id="1">
 //     <div class="aside">
@@ -98,45 +132,3 @@ type CustomResult<T> = Result<T, CustomError>;
 
 // <div class="description">
 // </div>
-
-pub fn parse_text(node: &ElementRef, selector: &Selector) -> Option<String> {
-    if let Some(result) = node.select(selector).next() {
-        if let Some(text) = result.text().next() {
-            if !text.trim().is_empty() {
-                return Some(text.trim().to_string());
-            }
-        }
-    }
-    None
-}
-
-pub fn parse_num_with_regex<T>(text: &str, regex: &Regex) -> Option<T>
-where
-    T: std::str::FromStr,
-    <T as std::str::FromStr>::Err: std::fmt::Debug,
-{
-    if let Some(captures) = regex.captures(text.trim()) {
-        if let Some(matched) = captures.get(1) {
-            if let Ok(parsed) = matched.as_str().parse::<T>() {
-                return Some(parsed);
-            }
-        }
-    }
-    None
-}
-
-pub async fn response_get(url: &str) -> CustomResult<Html> {
-    // download the target HTML document
-    // let response: Result<reqwest::blocking::Response, reqwest::Error> = reqwest::blocking::get(URL_MOSKINO_SCHEDULE);
-    // let response = reqwest::get(url).await?;
-    // let response = reqwest::blocking::get(url)?;
-    let response = reqwest::get(url).await?;
-
-    let html_content = response.text().await?;
-
-    // get the HTML content from the request response
-    // let html_content = response.unwrap().text().unwrap();
-    // parse the HTML document
-    let document = scraper::Html::parse_document(&html_content);
-    Ok(document)
-}
