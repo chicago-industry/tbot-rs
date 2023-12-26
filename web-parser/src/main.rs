@@ -104,6 +104,7 @@ async fn scrap_movies(db: Arc<DB>, cinema_id: i32, date: NaiveDate, content: Vec
         handlers.push(tokio::task::spawn(async move {
             let db2 = Arc::clone(&db);
 
+            // TODO handle result
             let movie_id = parse_movie(db, &movie_node).await.unwrap();
 
             // collect session html blocks for every movie
