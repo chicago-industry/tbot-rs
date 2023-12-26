@@ -42,8 +42,8 @@ lazy_static! {
 }
 
 pub type MyDialogue = Dialogue<State, InMemStorage<State>>;
-pub type CustomError = Box<dyn Error + Send + Sync>;
-pub type CustomResult<T> = Result<T, CustomError>;
+pub type Errr = Box<dyn Error + Send + Sync>;
+pub type Res<T> = Result<T, Errr>;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -72,7 +72,7 @@ pub enum State {
 // TODO:
 // start to use tokio async await dude
 #[tokio::main]
-async fn main() -> CustomResult<()> {
+async fn main() -> Res<()> {
     pretty_env_logger::init();
 
     let db = DB::pool().await?;
@@ -95,7 +95,7 @@ async fn main() -> CustomResult<()> {
     Ok(())
 }
 
-pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: Me) -> CustomResult<()> {
+pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: Me) -> Res<()> {
     if let Some(text) = msg.text() {
         match BotCommands::parse(text, me.username()) {
             Ok(Command::Start) => {
@@ -113,7 +113,7 @@ pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: M
     Ok(())
 }
 
-async fn callback_handler(bot: Bot, dialogue: MyDialogue, q: CallbackQuery, db: Arc<DB>) -> CustomResult<()> {
+async fn callback_handler(bot: Bot, dialogue: MyDialogue, q: CallbackQuery, db: Arc<DB>) -> Res<()> {
     // TODO
     // pass CallbackQuery to functions instead of id, chat
     if let (Some(callback_data), Some(Message { id, chat, .. })) = (q.data.clone(), q.message.clone()) {

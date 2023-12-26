@@ -8,7 +8,6 @@ static URL_MOSKINO: &str = "https://mos-kino.ru";
 
 lazy_static! {
     static ref R_AGE: Regex = Regex::new(r"(\d+)").unwrap();
-    // static ref SCHEDULE_SELECTOR: Selector = Selector::parse(".schedule-item").unwrap();
     static ref TITLE_SELECTOR: Selector = Selector::parse(".title").unwrap();
     static ref SMALL_SELECTOR: Selector = Selector::parse("small").unwrap();
     static ref KP_SELECTOR: Selector = Selector::parse(".name").unwrap();
@@ -66,10 +65,12 @@ impl MoskinoMovie {
         }
     }
 
-    // pub fn from_node(node: ElementRef<'_>, movies: &mut HashSet<Self>) -> CustomResult<()> {
-    pub fn from_node(node: ElementRef<'_>) -> CustomResult<MoskinoMovie> {
+    // pub fn from_node(node: ElementRef<'_>, movies: &mut HashSet<Self>) -> Res<()> {
+    pub fn from_node(node: &str) -> Res<MoskinoMovie> {
+        let html = Html::parse_document(node);
+
         // извлекаем название фильма
-        match parse_text(&node, &TITLE_SELECTOR) {
+        match parse_text(&html.root_element(), &TITLE_SELECTOR) {
             Some(title) => {
                 let mut movie = Self::draft(&title);
 
@@ -79,13 +80,13 @@ impl MoskinoMovie {
                 // }
 
                 // parsing year
-                if let Some(raw_info) = parse_text(&node, &SMALL_SELECTOR) {
+                if let Some(raw_info) = parse_text(&html.root_element(), &SMALL_SELECTOR) {
                     match Self::parse_year(&raw_info) {
                         Ok(year) => {
                             movie.year = Some(year);
                         }
                         Err(_) => {
-                            warn!("YEAR");
+                            // warn!("YEAR");
                         }
                     }
                 }
@@ -99,7 +100,7 @@ impl MoskinoMovie {
                 // parsing href kinopoisk
                 movie.href_kinopoisk = tokio::task::block_in_place(|| Self::parse_href_kinopoisk(&movie))?;
 
-                info!("^^^ '{}'", movie.title);
+                // info!("^^^ '{}'", movie.title);
                 // movies.insert(movie);
                 // Ok(())
                 Ok(movie)
@@ -111,7 +112,7 @@ impl MoskinoMovie {
         }
     }
 
-    fn parse_year(raw: &str) -> CustomResult<i32> {
+    fn parse_year(raw: &str) -> Res<i32> {
         let index = raw.find('/');
 
         if let Some(i) = index {
@@ -123,7 +124,7 @@ impl MoskinoMovie {
     }
 
     // search href for a specific movie in the "Movies" tab on Moskino
-    fn parse_href_moskino(&mut self) -> CustomResult<()> {
+    fn parse_href_moskino(&mut self) -> Res<()> {
         let html = response_blocking(URL_MOSKINO_MOVIES)?;
 
         // 1: select all elements based on a given selector
@@ -150,7 +151,7 @@ impl MoskinoMovie {
         }
     }
 
-    fn parse_movie_info(&mut self) -> CustomResult<()> {
+    fn parse_movie_info(&mut self) -> Res<()> {
         let url = self.href_moskino.as_deref().ok_or_else(|| {
             let emsg = format!("'{}': no href to the movie for full parsing", self.title);
             Box::new(io::Error::new(io::ErrorKind::NotFound, emsg))
@@ -162,31 +163,31 @@ impl MoskinoMovie {
         if let Some(genre) = parse_text(&node, &MOSKINO_MOVIE_GENRE) {
             self.genre = Some(genre);
         } else {
-            warn!("Genre");
+            // warn!("Genre");
         }
 
         if let Some(info) = parse_text(&node, &MOSKINO_MOVIE_INFO) {
             self.parse_info(info);
         } else {
-            warn!("Info")
+            // warn!("Info")
         }
 
         if let Some(tagline) = parse_text(&node, &MOSKINO_MOVIE_TAGLINE) {
             self.tagline = Some(tagline);
         } else {
-            warn!("Tagline");
+            // warn!("Tagline");
         }
 
         if let Some(director) = parse_text(&node, &MOSKINO_MOVIE_DIRECTOR) {
             self.director = Some(director);
         } else {
-            warn!("Director");
+            // warn!("Director");
         }
 
         if let Some(description) = parse_text(&node, &MOSKINO_MOVIE_DESCRIPTION) {
             self.description = Some(description);
         } else {
-            warn!("Description");
+            // warn!("Description");
         }
 
         Ok(())
@@ -198,17 +199,17 @@ impl MoskinoMovie {
         if !splitted[0].trim().is_empty() {
             self.country = Some(splitted[0].trim().to_string());
         } else {
-            warn!("Country");
+            // warn!("Country");
         }
 
         if !splitted[1].trim().is_empty() {
             if let Ok(year) = splitted[1].trim().parse::<i32>() {
                 self.year = Some(year);
             } else {
-                warn!("Year");
+                // warn!("Year");
             }
         } else {
-            warn!("Year");
+            // warn!("Year");
         }
 
         if !splitted[2].trim().is_empty() {
@@ -216,24 +217,24 @@ impl MoskinoMovie {
             if let Ok(duration) = duration.trim().parse::<i32>() {
                 self.duration = Some(duration);
             } else {
-                warn!("Duration");
+                // warn!("Duration");
             }
         } else {
-            warn!("Duration");
+            // warn!("Duration");
         }
 
         if !splitted[3].trim().is_empty() {
             if let Some(num) = parse_num_with_regex(splitted[3].trim(), &R_AGE) {
                 self.age = Some(num);
             } else {
-                warn!("Age Rating");
+                // warn!("Age Rating");
             }
         } else {
-            warn!("Age Rating");
+            // warn!("Age Rating");
         }
     }
 
-    fn parse_href_kinopoisk(movie: &MoskinoMovie) -> CustomResult<Option<String>> {
+    fn parse_href_kinopoisk(movie: &MoskinoMovie) -> Res<Option<String>> {
         // Kinopoisk query link
         let url = Self::create_url_to_search(&movie.title, movie.year);
 
@@ -250,14 +251,14 @@ impl MoskinoMovie {
                     let url = Self::create_url_to_search(&movie.title, None);
                     MoskinoMovie::kinopoisk_get_link(url, &movie)
                 } else {
-                    warn!("KP href");
+                    // warn!("KP href");
                     Ok(None)
                 }
             }
         }
     }
 
-    fn kinopoisk_get_link(url: String, movie: &MoskinoMovie) -> CustomResult<Option<String>> {
+    fn kinopoisk_get_link(url: String, movie: &MoskinoMovie) -> Res<Option<String>> {
         let html = response_blocking(&url)?;
 
         let a = html.select(&KP_A_SELECTOR).next();

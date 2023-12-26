@@ -5,7 +5,7 @@ use super::*;
 
 // use super::chrono::NaiveDate;
 // use super::State;
-// use super::{CustomError, CustomResult, MyDialogue};
+// use super::{Errr, Res, MyDialogue};
 
 // use teloxide::{
 //     dispatching::{dialogue, dialogue::InMemStorage},

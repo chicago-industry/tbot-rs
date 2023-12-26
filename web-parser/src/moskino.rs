@@ -4,7 +4,7 @@ use scraper::{Element, ElementRef, Html, Selector};
 use std::{fmt, io};
 
 use super::lazy_static;
-use super::CustomResult;
+use super::Res;
 
 pub mod cinema;
 pub mod movie;
@@ -36,14 +36,14 @@ where
     None
 }
 
-pub(super) async fn response(url: &str) -> CustomResult<Html> {
+pub(super) async fn response(url: &str) -> Res<Html> {
     let response = reqwest::get(url).await?;
     let html_content = response.text().await?;
 
     Ok(scraper::Html::parse_document(&html_content))
 }
 
-pub(super) fn response_blocking(url: &str) -> CustomResult<Html> {
+pub(super) fn response_blocking(url: &str) -> Res<Html> {
     let response = reqwest::blocking::get(url)?;
     let html_content = response.text()?;
 
@@ -132,3 +132,5 @@ pub(super) fn response_blocking(url: &str) -> CustomResult<Html> {
 
 // <div class="description">
 // </div>
+
+// 23 декабря 14:00 UTC

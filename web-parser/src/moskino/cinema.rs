@@ -10,8 +10,10 @@ pub struct MoskinoCinema {
 }
 
 impl MoskinoCinema {
-    pub fn from_node(node: ElementRef<'_>) -> CustomResult<MoskinoCinema> {
-        match parse_text(&node, &PLACE_SELECTOR) {
+    pub fn from_node(node: &str) -> Res<MoskinoCinema> {
+        let html = Html::parse_document(node);
+
+        match parse_text(&html.root_element(), &PLACE_SELECTOR) {
             Some(text) => Ok(MoskinoCinema { name: text }),
             None => {
                 let emsg = "Couldn't parse cinema".to_string();

@@ -1,20 +1,20 @@
 use super::*;
 
-pub async fn restart_option(id: MessageId, date: NaiveDate, chat: Chat, bot: Bot, dialogue: MyDialogue) -> CustomResult<()> {
+pub async fn restart_option(id: MessageId, date: NaiveDate, chat: Chat, bot: Bot, dialogue: MyDialogue) -> Res<()> {
     let keyboard = keyboard_main();
     bot.edit_message_text(chat.id, id, "Выберите опцию").reply_markup(keyboard).await?;
     dialogue.update(State::StartOption { date }).await?;
     Ok(())
 }
 
-pub async fn restart_day(id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue) -> CustomResult<()> {
+pub async fn restart_day(id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue) -> Res<()> {
     let keyboard = keyboard_day();
     bot.edit_message_text(chat.id, id, "Выберите день").reply_markup(keyboard).await?;
     dialogue.update(State::DayOption).await?;
     Ok(())
 }
 
-pub async fn cb_handle_day_option(raw_option: String, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue) -> CustomResult<()> {
+pub async fn cb_handle_day_option(raw_option: String, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue) -> Res<()> {
     match raw_option.parse::<i32>() {
         Ok(option) => match option.try_into() {
             Ok(ButtonOption::Close) => {
@@ -41,7 +41,15 @@ pub async fn cb_handle_day_option(raw_option: String, id: MessageId, chat: Chat,
     Ok(())
 }
 
-pub async fn cb_handle_start_option(option: i32, date: NaiveDate, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> CustomResult<()> {
+pub async fn cb_handle_start_option(
+    option: i32,
+    date: NaiveDate,
+    id: MessageId,
+    chat: Chat,
+    bot: Bot,
+    dialogue: MyDialogue,
+    db: Arc<DB>,
+) -> Res<()> {
     match option.try_into() {
         // Выбрана опция 'Закрыть' на стартовом меню
         Ok(ButtonOption::Close) => {
@@ -64,12 +72,16 @@ pub async fn cb_handle_start_option(option: i32, date: NaiveDate, id: MessageId,
             match cinemas {
                 Ok(Some(cinemas)) => {
                     let keyboard = keyboard_cinemas(cinemas);
-                    bot.edit_message_text(chat.id, id, "Выберите кинотеатр").reply_markup(keyboard).await?;
+                    bot.edit_message_text(chat.id, id, "Выберите кинотеатр")
+                        .reply_markup(keyboard)
+                        .await?;
                     dialogue.update(State::Cinemas { date }).await?;
                 }
                 Ok(None) => {
                     let keyboard = keyboard_ok_or_up(MenuCode::Cinemas);
-                    bot.edit_message_text(chat.id, id, "Нету доступных кинотеатров для показа").reply_markup(keyboard).await?;
+                    bot.edit_message_text(chat.id, id, "Нету доступных кинотеатров для показа")
+                        .reply_markup(keyboard)
+                        .await?;
                     dialogue.update(State::Cinemas { date }).await?;
                 }
                 Err(e) => {
@@ -87,7 +99,15 @@ pub async fn cb_handle_start_option(option: i32, date: NaiveDate, id: MessageId,
     Ok(())
 }
 
-pub async fn cb_handle_cinemas(option: i32, date: NaiveDate, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> CustomResult<()> {
+pub async fn cb_handle_cinemas(
+    option: i32,
+    date: NaiveDate,
+    id: MessageId,
+    chat: Chat,
+    bot: Bot,
+    dialogue: MyDialogue,
+    db: Arc<DB>,
+) -> Res<()> {
     match option.try_into() {
         Ok(option) => match option {
             ButtonOption::Close => {
@@ -143,7 +163,7 @@ pub async fn cb_handle_pressed_button<T>(
     dialogue: MyDialogue,
     db: Arc<DB>,
     q: CallbackQuery,
-) -> CustomResult<()>
+) -> Res<()>
 where
     CallbackData<T>: CallbackDataTrait,
 {
@@ -193,7 +213,7 @@ pub async fn callback_handle_movielist<T>(
     bot: Bot,
     dialogue: MyDialogue,
     db: Arc<DB>,
-) -> CustomResult<()>
+) -> Res<()>
 where
     CallbackData<T>: CallbackDataTrait,
 {
@@ -246,7 +266,14 @@ where
 // обработка прикреплённого сообщения (информация по фильму) под списком фильмов
 // TODO
 // movie.unwrap()
-pub async fn callback_handle_pinned_movie<T>(mut data: CallbackData<T>, movie_id: i32, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> CustomResult<()>
+pub async fn callback_handle_pinned_movie<T>(
+    mut data: CallbackData<T>,
+    movie_id: i32,
+    chat: Chat,
+    bot: Bot,
+    dialogue: MyDialogue,
+    db: Arc<DB>,
+) -> Res<()>
 where
     CallbackData<T>: CallbackDataTrait,
 {
@@ -264,7 +291,9 @@ where
 
     match data.pinned_msg {
         Some(ref mut pinned_data) => {
-            bot.edit_message_text(chat.id, pinned_data.id_msg, text).reply_markup(keyboard).await?;
+            bot.edit_message_text(chat.id, pinned_data.id_msg, text)
+                .reply_markup(keyboard)
+                .await?;
             pinned_data.id_movie = movie_id;
         }
         None => {

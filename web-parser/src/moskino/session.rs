@@ -15,11 +15,13 @@ pub struct MoskinoSession {
 impl MoskinoSession {
     // .time
     // .price
-    pub fn from_node(node: ElementRef<'_>) -> CustomResult<Self> {
+    pub fn from_node(node: &str) -> Res<Self> {
+        let html = Html::parse_document(node);
+
         let mut session = MoskinoSession::default();
 
-        let time = parse_text(&node, &TIME_SELECTOR);
-        let price = parse_text(&node, &PRICE_SELECTOR);
+        let time = parse_text(&html.root_element(), &TIME_SELECTOR);
+        let price = parse_text(&html.root_element(), &PRICE_SELECTOR);
 
         if let (Some(time), Some(price)) = (time, price) {
             match NaiveTime::parse_from_str(&time, "%H:%M") {

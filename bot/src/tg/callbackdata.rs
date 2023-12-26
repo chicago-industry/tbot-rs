@@ -43,16 +43,16 @@ pub trait CallbackDataTrait {
     fn state_update(self) -> State;
     fn headline_text(&self) -> String;
     fn get_data_for_absence_answer(&self) -> (String, InlineKeyboardMarkup);
-    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> CustomResult<()>;
+    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> Res<()>;
     async fn q_count_movies(&self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<i64>;
     async fn q_get_movies_short(&self, db: Arc<DB>) -> DBResult<Option<Vec<MovieShort>>>;
     async fn q_get_sessions(&mut self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<Option<Vec<Session>>>;
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> CustomResult<()>;
+    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> Res<()>;
 }
 
 #[async_trait]
 impl CallbackDataTrait for CallbackDataDefault {
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, _: Arc<DB>) -> CustomResult<()> {
+    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, _: Arc<DB>) -> Res<()> {
         if let Some(pinned_msg) = self.pinned_msg {
             bot.delete_message(chat.id, pinned_msg.id_msg).await?;
         }
@@ -61,7 +61,7 @@ impl CallbackDataTrait for CallbackDataDefault {
 
     // TODO
     #[allow(unused_variables)]
-    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> CustomResult<()> {
+    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> Res<()> {
         bot.answer_callback_query(q.id).text(String::from("TODO")).show_alert(true).await?;
         Ok(())
     }
@@ -109,7 +109,7 @@ impl CallbackDataTrait for CallbackDataDefault {
 
 #[async_trait]
 impl CallbackDataTrait for CallbackDataCinema {
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> CustomResult<()> {
+    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> Res<()> {
         if let Some(pinned_msg) = self.pinned_msg {
             bot.delete_message(chat.id, pinned_msg.id_msg).await?;
         }
@@ -118,7 +118,7 @@ impl CallbackDataTrait for CallbackDataCinema {
 
     // TODO
     // check for bytes count (MAX LIMIT)
-    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> CustomResult<()> {
+    async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> Res<()> {
         let text: String = match sessions {
             Some(s) => s
                 .iter()
@@ -192,7 +192,8 @@ impl<T> CallbackData<T> {
     }
 
     fn can_step(&self, move_option: ButtonOption) -> bool {
-        !((self.db_current_page == 1 && move_option == ButtonOption::Back) || (self.db_current_page == self.db_total_pages && move_option == ButtonOption::Forward))
+        !((self.db_current_page == 1 && move_option == ButtonOption::Back)
+            || (self.db_current_page == self.db_total_pages && move_option == ButtonOption::Forward))
     }
 }
 

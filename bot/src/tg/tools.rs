@@ -11,13 +11,19 @@ pub fn create_movie_description(movie: &Movie) -> String {
         movie.title,
         movie.year.map_or("".to_string(), |year| format!("\n\nГод: {}", year)),
         movie.genre.as_ref().map_or("".to_string(), |genre| format!("\nЖанр: {}", genre)),
-        movie.director.as_ref().map_or("".to_string(), |director| format!("\nРежиссер: {}", director)),
+        movie
+            .director
+            .as_ref()
+            .map_or("".to_string(), |director| format!("\nРежиссер: {}", director)),
         "\n",
-        movie.description.as_ref().map_or("".to_string(), |description| format!("\n{}", description)),
+        movie
+            .description
+            .as_ref()
+            .map_or("".to_string(), |description| format!("\n{}", description)),
     )
 }
 
-pub fn parse_callback_data(callback_data: &str) -> CustomResult<(MenuCode, String)> {
+pub fn parse_callback_data(callback_data: &str) -> Res<(MenuCode, String)> {
     let mut parts = callback_data.split(CD_DELIMETER);
     match (parts.next(), parts.next()) {
         (Some(a), Some(b)) => {

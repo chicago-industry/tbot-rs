@@ -17,7 +17,7 @@ pub enum MenuCode {
 }
 
 impl MenuCode {
-    pub fn check_complience(self, code: MenuCode) -> CustomResult<()> {
+    pub fn check_complience(self, code: MenuCode) -> Res<()> {
         if self != code {
             Err(Box::new(io::Error::new(io::ErrorKind::Other, "Invalid MenuCode number")))
         } else {
