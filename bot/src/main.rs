@@ -1,8 +1,3 @@
-// #![allow(unused_imports)]
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unused_mut)]
-
 #[macro_use]
 extern crate dotenv_codegen;
 extern crate chrono;
@@ -13,11 +8,7 @@ extern crate log;
 extern crate teloxide;
 extern crate tokio;
 
-// mod db;
 mod tg;
-
-// use crate::db;
-// use db;
 
 use chrono::NaiveDate;
 use lazy_static::lazy_static;
@@ -27,11 +18,11 @@ use teloxide::{
     dispatching::{dialogue, dialogue::InMemStorage},
     payloads::SendMessageSetters,
     prelude::*,
-    types::{Chat, InlineKeyboardButton, InlineKeyboardMarkup, Me, MessageId},
+    types::{InlineKeyboardButton, InlineKeyboardMarkup, Me, MessageId},
     utils::command::BotCommands,
 };
 
-use db::{Cinema, Movie, MovieShort, DB};
+use db::{Cinema, MovieShort, DB};
 use tg::callback_handler::*;
 use tg::callbackdata::*;
 use tg::keyboard::*;
@@ -69,8 +60,6 @@ pub enum State {
     },
 }
 
-// TODO:
-// start to use tokio async await dude
 #[tokio::main]
 async fn main() -> Res<()> {
     pretty_env_logger::init();
@@ -84,7 +73,11 @@ async fn main() -> Res<()> {
 
     let handler = dialogue::enter::<Update, InMemStorage<State>, State, _>()
         .branch(Update::filter_message().endpoint(message_handler))
-        .branch(Update::filter_callback_query().endpoint(callback_handler));
+        .branch(
+            Update::filter_callback_query()
+                // there is should be sub branch in case to split handlers by statements
+                .endpoint(callback_handler),
+        );
 
     Dispatcher::builder(bot, handler)
         .dependencies(dptree::deps![InMemStorage::<State>::new(), db])
@@ -113,51 +106,59 @@ pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: M
     Ok(())
 }
 
+fn callback_get(q: CallbackQuery) -> Res<(MenuCode, String, Message)> {
+    match (q.data, q.message) {
+        (Some(data), Some(message)) => {
+            let (menu_code, menu_option) = callbackdata_parse(&data)?;
+            Ok((menu_code, menu_option, message))
+        }
+        _ => Err(Box::new(io::Error::new(io::ErrorKind::InvalidInput, "No callback data or message"))),
+    }
+}
+
 async fn callback_handler(bot: Bot, dialogue: MyDialogue, q: CallbackQuery, db: Arc<DB>) -> Res<()> {
-    // TODO
-    // pass CallbackQuery to functions instead of id, chat
-    if let (Some(callback_data), Some(Message { id, chat, .. })) = (q.data.clone(), q.message.clone()) {
-        let (menu_code, raw_option) = parse_callback_data(&callback_data)?;
-        let state: Option<State> = dialogue.get().await?;
+    let (m_code, m_opt, message) = callback_get(q.clone())?;
 
-        match state {
-            Some(State::DayOption) => {
-                bot.answer_callback_query(q.id).await?;
-                menu_code.check_complience(MenuCode::ChooseDay)?;
+    let state: Option<State> = dialogue.get().await?;
 
-                cb_handle_day_option(raw_option, id, chat, bot, dialogue).await?;
-            }
-            Some(State::StartOption { date }) => {
-                bot.answer_callback_query(q.id).await?;
-                menu_code.check_complience(MenuCode::MainMenu)?;
+    match state {
+        Some(State::DayOption) => {
+            bot.answer_callback_query(q.id).await?;
+            m_code.check_complience(MenuCode::ChooseDay)?;
 
-                let option = raw_option.parse::<i32>()?;
-                cb_handle_start_option(option, date, id, chat, bot, dialogue, db).await?;
-            }
-            Some(State::Cinemas { date }) => {
-                bot.answer_callback_query(q.id).await?;
-                menu_code.check_complience(MenuCode::Cinemas)?;
+            cb_handle_day_option(m_opt, message, bot, dialogue).await?;
+        }
+        Some(State::StartOption { date }) => {
+            bot.answer_callback_query(q.id).await?;
+            m_code.check_complience(MenuCode::MainMenu)?;
 
-                let option = raw_option.parse::<i32>()?;
-                cb_handle_cinemas(option, date, id, chat, bot, dialogue, db).await?;
-            }
-            Some(State::FromCinema { data }) => {
-                menu_code.check_complience(MenuCode::MovielistFromCinema)?;
+            let option = m_opt.parse::<i32>()?;
+            cb_handle_start_option(bot, dialogue, message, db, option, date).await?;
+        }
+        Some(State::Cinemas { date }) => {
+            bot.answer_callback_query(q.id).await?;
+            m_code.check_complience(MenuCode::Cinemas)?;
 
-                let option = raw_option.parse::<i32>()?;
-                cb_handle_pressed_button(data, option, id, chat, bot, dialogue, db, q).await?;
-            }
-            Some(State::FromMovie { data }) => {
-                menu_code.check_complience(MenuCode::MovielistDefault)?;
+            let option = m_opt.parse::<i32>()?;
+            cb_handle_cinemas(bot, dialogue, message, db, option, date).await?;
+        }
+        Some(State::FromCinema { data }) => {
+            m_code.check_complience(MenuCode::MovielistFromCinema)?;
 
-                let option = raw_option.parse::<i32>()?;
-                cb_handle_pressed_button(data, option, id, chat, bot, dialogue, db, q).await?;
-            }
-            _ => {
-                error!("state is none");
-                dialogue.exit().await?;
-            }
+            let option = m_opt.parse::<i32>()?;
+            cb_handle_pressed_button(bot, dialogue, message, q, db, option, data).await?;
+        }
+        Some(State::FromMovie { data }) => {
+            m_code.check_complience(MenuCode::MovielistDefault)?;
+
+            let option = m_opt.parse::<i32>()?;
+            cb_handle_pressed_button(bot, dialogue, message, q, db, option, data).await?;
+        }
+        _ => {
+            error!("Couldn't get State");
+            dialogue.exit().await?;
         }
     }
+
     Ok(())
 }

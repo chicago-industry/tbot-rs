@@ -48,6 +48,24 @@ pub struct Movie {
     pub tagline: Option<String>,
 }
 
+impl Movie {
+    pub fn description(&self) -> String {
+        format!(
+            "{}{}{}{}{}{}\n",
+            self.title,
+            self.year.map_or("".to_string(), |year| format!("\n\nГод: {}", year)),
+            self.genre.as_ref().map_or("".to_string(), |genre| format!("\nЖанр: {}", genre)),
+            self.director
+                .as_ref()
+                .map_or("".to_string(), |director| format!("\nРежиссер: {}", director)),
+            "\n",
+            self.description
+                .as_ref()
+                .map_or("".to_string(), |description| format!("\n{}", description)),
+        )
+    }
+}
+
 #[derive(Debug)]
 pub struct MovieShort {
     pub id: i32,
@@ -94,7 +112,12 @@ impl DB {
         })
     }
 
-    pub async fn q_get_sessions_by_cinema(conn: impl sqlx::PgExecutor<'_>, movie_id: i32, cinema_id: i32, date: NaiveDate) -> DBResult<Option<Vec<Session>>> {
+    pub async fn q_get_sessions_by_cinema(
+        conn: impl sqlx::PgExecutor<'_>,
+        movie_id: i32,
+        cinema_id: i32,
+        date: NaiveDate,
+    ) -> DBResult<Option<Vec<Session>>> {
         let time = time_determine(date);
 
         let sessions: Vec<Session> = sqlx::query_as!(
@@ -280,7 +303,12 @@ impl DB {
     }
 
     // TODO
-    pub async fn q_get_movies_short(conn: impl sqlx::PgExecutor<'_>, date: NaiveDate, page: i64, items_per_page: i64) -> DBResult<Option<Vec<MovieShort>>> {
+    pub async fn q_get_movies_short(
+        conn: impl sqlx::PgExecutor<'_>,
+        date: NaiveDate,
+        page: i64,
+        items_per_page: i64,
+    ) -> DBResult<Option<Vec<MovieShort>>> {
         let time = time_determine(date);
         let offset = (page - 1) * items_per_page;
 

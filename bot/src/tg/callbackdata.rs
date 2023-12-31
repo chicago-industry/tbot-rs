@@ -9,19 +9,19 @@ use keyboard::*;
 pub struct CallbackData<T> {
     // selected date
     pub date: NaiveDate,
-    // id сообщения, в котором выведен список фильмов по кинотеатру
+    // id a message containing a list of films by cinema
     pub id_msg: MessageId,
-    // текущая страница списка
+    // current movie list page
     pub db_current_page: i64,
-    // количество страниц
+    // count of pages
     pub db_total_pages: i64,
-    // 'объем' страницы (сколько макс. фильмов на странице)
+    // volume of a page (how many max movies per page)
     pub db_items_per_page: i64,
-    // в зависимости из какого меню мы пришли нам будет нужна информация о выбранном кинотеатре:
-    // - если внажали кнопку 'Все фильмы', то нам не нужна информация о каком-либо кинотеатре
-    // - если нажали кнопку 'По кинотеатру' и впоследствии выбрали кинотеатр, то тут будет хранится информация о выбранном кинотеатре
+    // depending on which menu we came from, we will need information about the selected cinema:
+    // - if the 'All Movies' button is pressed, we don't need information about any specific cinema.
+    // - if the 'By Cinema' button is pressed, and a cinema is subsequently selected, information about the selected cinema will be stored here.
     pub cinema: T,
-    // дополнительное сообщение по фильму (с первого вывода списка фильма отсутствует до тех пор, пока пользователь не нажмет на какой-то фильм)
+    // additional movie details (absent from the initial list of movies until the user clicks on a specific movie).
     pub pinned_msg: Option<CallbackPinnedMsg>,
 }
 
@@ -30,15 +30,15 @@ pub type CallbackDataCinema = CallbackData<Cinema>;
 
 #[derive(Debug, Copy, Clone)]
 pub struct CallbackPinnedMsg {
-    // id сообщения, где выведена информация по фильму
+    // ID of the message where movie information is displayed
     pub id_msg: MessageId,
-    // id фильма в сообщении
-    pub id_movie: i32,
+    // ID of the movie in the message
+    pub db_id_movie: i32,
 }
 
 #[async_trait]
 // different realization for CallbackDataCinema and CallbackDataDefault
-pub trait CallbackDataTrait {
+pub trait Cbd {
     fn get_menu_code(&self) -> MenuCode;
     fn state_update(self) -> State;
     fn headline_text(&self) -> String;
@@ -47,22 +47,28 @@ pub trait CallbackDataTrait {
     async fn q_count_movies(&self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<i64>;
     async fn q_get_movies_short(&self, db: Arc<DB>) -> DBResult<Option<Vec<MovieShort>>>;
     async fn q_get_sessions(&mut self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<Option<Vec<Session>>>;
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> Res<()>;
+    async fn go_prev(&self, bot: Bot, dialogue: MyDialogue, msg: Message, db: Arc<DB>) -> Res<()>;
 }
 
 #[async_trait]
-impl CallbackDataTrait for CallbackDataDefault {
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, _: Arc<DB>) -> Res<()> {
+impl Cbd for CallbackDataDefault {
+    async fn go_prev(&self, bot: Bot, dialogue: MyDialogue, msg: Message, _: Arc<DB>) -> Res<()> {
         if let Some(pinned_msg) = self.pinned_msg {
-            bot.delete_message(chat.id, pinned_msg.id_msg).await?;
+            bot.delete_message(msg.chat.id, pinned_msg.id_msg).await?;
         }
-        restart_option(id, self.date, chat, bot, dialogue).await
+        restart_mainmenu(bot, dialogue, msg, self.date).await
     }
 
     // TODO
+    // выводить сообщение о переходе на сайт только есть список реально не влезает (сделать + проверить длину)
     #[allow(unused_variables)]
     async fn show_sessions(&self, bot: Bot, q: CallbackQuery, sessions: Option<Vec<Session>>) -> Res<()> {
-        bot.answer_callback_query(q.id).text(String::from("TODO")).show_alert(true).await?;
+        bot.answer_callback_query(q.id)
+            .text(String::from(
+                "Список может получиться слишком длинным. Посмотрите сеансы перейдя по ссылке на Москино",
+            ))
+            .show_alert(true)
+            .await?;
         Ok(())
     }
 
@@ -73,7 +79,7 @@ impl CallbackDataTrait for CallbackDataDefault {
     // TODO
     // unwrap
     async fn q_get_sessions(&mut self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<Option<Vec<Session>>> {
-        DB::q_get_sessions_all(conn, self.pinned_msg.unwrap().id_movie, self.date).await
+        DB::q_get_sessions_all(conn, self.pinned_msg.unwrap().db_id_movie, self.date).await
     }
 
     async fn q_get_movies_short(&self, db: Arc<DB>) -> Result<Option<Vec<MovieShort>>, sqlx::Error> {
@@ -108,12 +114,12 @@ impl CallbackDataTrait for CallbackDataDefault {
 }
 
 #[async_trait]
-impl CallbackDataTrait for CallbackDataCinema {
-    async fn go_prev(&self, id: MessageId, chat: Chat, bot: Bot, dialogue: MyDialogue, db: Arc<DB>) -> Res<()> {
+impl Cbd for CallbackDataCinema {
+    async fn go_prev(&self, bot: Bot, dialogue: MyDialogue, msg: Message, db: Arc<DB>) -> Res<()> {
         if let Some(pinned_msg) = self.pinned_msg {
-            bot.delete_message(chat.id, pinned_msg.id_msg).await?;
+            bot.delete_message(msg.chat.id, pinned_msg.id_msg).await?;
         }
-        cb_handle_start_option(ButtonOption::Cinemas as i32, self.date, id, chat, bot, dialogue, db).await
+        cb_handle_start_option(bot, dialogue, msg, db, ButtonOption::Cinemas as i32, self.date).await
     }
 
     // TODO
@@ -135,7 +141,7 @@ impl CallbackDataTrait for CallbackDataCinema {
     // TODO
     // unwrap
     async fn q_get_sessions(&mut self, conn: impl sqlx::PgExecutor<'_>) -> DBResult<Option<Vec<Session>>> {
-        DB::q_get_sessions_by_cinema(conn, self.pinned_msg.unwrap().id_movie, self.cinema.id, self.date).await
+        DB::q_get_sessions_by_cinema(conn, self.pinned_msg.unwrap().db_id_movie, self.cinema.id, self.date).await
     }
 
     async fn q_count_movies(&self, conn: impl sqlx::PgExecutor<'_>) -> Result<i64, sqlx::Error> {
@@ -167,12 +173,12 @@ impl CallbackDataTrait for CallbackDataCinema {
 }
 
 impl<T> CallbackData<T> {
-    // расчет количества страниц фильмов
+    // calculation of the number of movie pages
     pub fn set_total_pages(&mut self, db_movies_count: i64) {
         let db_current_total_pages = (db_movies_count as f64 / self.db_items_per_page as f64).ceil() as i64;
 
-        // если количество страниц изменилось по сравнению с предыдущим значением (какой-то фильм добавился или пропал),
-        // то сбрасываем текущую страницу на 1 и выставляем новый total_pages
+        // if the number of pages has changed compared to the previous value (a movie has been added or removed),
+        // then reset the current page to 1 and set the new total_pages
         if self.db_total_pages != db_current_total_pages {
             self.db_current_page = 1;
             self.db_total_pages = db_current_total_pages;
@@ -225,7 +231,7 @@ impl CallbackDataDefault {
 }
 
 impl CallbackPinnedMsg {
-    pub fn new(id_msg: MessageId, id_movie: i32) -> Self {
-        Self { id_msg, id_movie }
+    pub fn new(id_msg: MessageId, db_id_movie: i32) -> Self {
+        Self { id_msg, db_id_movie }
     }
 }
