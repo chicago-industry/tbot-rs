@@ -22,8 +22,11 @@ MOSKINO_BOT_ITEMS_PER_PAGE=4
 
 ## run
 ```
+to get data
 WEB_PARSER_ARG=today docker compose up web-parser
 WEB_PARSER_ARG=tommorow docker compose up web-parser
 WEB_PARSER_ARG=aftertommorow docker compose up web-parser
-docker compose up bot
+
+# to run bot
+docker compose up -d bot
 ```
