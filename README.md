@@ -3,7 +3,7 @@ for educational and fun
 
 ## .env file
 ```
-#db
+# db stuff
 POSTGRES_USER=<USER>
 POSTGRES_PASSWORD=<PASSWORD>
 POSTGRES_DB_NAME="postgres"
@@ -16,7 +16,7 @@ DATABASE_MAX_CONNECTIONS=10
 # tg token
 TELOXIDE_TOKEN=<TELEGRAM BOT TOKEN>
 
-# bot app
+# bot app settings
 MOSKINO_BOT_ITEMS_PER_PAGE=4
 ```
 
