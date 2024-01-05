@@ -1,16 +1,8 @@
-#[macro_use]
-extern crate dotenv_codegen;
-extern crate chrono;
 extern crate db;
-extern crate dotenv;
-extern crate lazy_static;
-extern crate log;
-extern crate teloxide;
-extern crate tokio;
-
-mod tg;
 
 use chrono::NaiveDate;
+use db::{Cinema, MovieShort, DB};
+use dotenv_codegen::dotenv;
 use lazy_static::lazy_static;
 use log::{error, info};
 use std::{convert::TryFrom, error::Error, io, sync::Arc};
@@ -22,7 +14,8 @@ use teloxide::{
     utils::command::BotCommands,
 };
 
-use db::{Cinema, MovieShort, DB};
+mod tg;
+
 use tg::callback_handler::*;
 use tg::callbackdata::*;
 use tg::keyboard::*;
@@ -62,11 +55,18 @@ pub enum State {
 
 #[tokio::main]
 async fn main() -> Res<()> {
+    println!("DATABASE_URL: {:?}", dotenv!("DATABASE_URL"));
+    println!("DATABASE_URL: {:?}", dotenv!("TELOXIDE_TOKEN"));
+    println!("DATABASE_URL: {:?}", dotenv!("DATABASE_MAX_CONNECTIONS"));
+    println!("DATABASE_URL: {:?}", dotenv!("DB_ITEMS_PER_PAGE"));
+
     pretty_env_logger::init();
 
-    let db = DB::pool().await?;
+    let db = DB::pool(dotenv!("DATABASE_URL"), dotenv!("DATABASE_MAX_CONNECTIONS").parse().unwrap()).await?;
     let db = Arc::new(db);
     info!("DB: connected");
+
+    sqlx::migrate!("../db/migrations").run(&db.conn).await?;
 
     let bot = Bot::new(dotenv!("TELOXIDE_TOKEN"));
     info!("TG: token accepted");
@@ -85,14 +85,18 @@ async fn main() -> Res<()> {
         .build()
         .dispatch()
         .await;
+
     Ok(())
 }
 
-pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: Me) -> Res<()> {
+pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: Me, db: Arc<DB>) -> Res<()> {
     if let Some(text) = msg.text() {
         match BotCommands::parse(text, me.username()) {
             Ok(Command::Start) => {
                 let keyboard = keyboard_day();
+
+                // TODO
+                let _ = db.insert_user(msg.chat.id.0, msg.chat.username()).await;
 
                 bot.send_message(msg.chat.id, "Выберите день").reply_markup(keyboard).await?;
                 dialogue.update(State::DayOption).await?;
@@ -109,7 +113,7 @@ pub async fn message_handler(bot: Bot, dialogue: MyDialogue, msg: Message, me: M
 fn callback_get(q: CallbackQuery) -> Res<(MenuCode, String, Message)> {
     match (q.data, q.message) {
         (Some(data), Some(message)) => {
-            let (menu_code, menu_option) = callbackdata_parse(&data)?;
+            let (menu_code, menu_option) = callback_parse(&data)?;
             Ok((menu_code, menu_option, message))
         }
         _ => Err(Box::new(io::Error::new(io::ErrorKind::InvalidInput, "No callback data or message"))),
@@ -118,7 +122,6 @@ fn callback_get(q: CallbackQuery) -> Res<(MenuCode, String, Message)> {
 
 async fn callback_handler(bot: Bot, dialogue: MyDialogue, q: CallbackQuery, db: Arc<DB>) -> Res<()> {
     let (m_code, m_opt, message) = callback_get(q.clone())?;
-
     let state: Option<State> = dialogue.get().await?;
 
     match state {

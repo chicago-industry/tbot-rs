@@ -1,29 +1,23 @@
-// #![allow(unused_imports)]
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unused_mut)]
-
-extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 extern crate db;
-extern crate dotenv;
-extern crate dotenv_codegen;
-extern crate futures;
-
-mod args;
-mod moskino;
 
 use chrono::NaiveDate;
 use clap::Parser;
 use db::DB;
+use dotenv_codegen::dotenv;
 use lazy_static::lazy_static;
-use moskino::cinema::MoskinoCinema;
-use moskino::movie::MoskinoMovie;
-use moskino::session::MoskinoSession;
+use log::{error, info};
 use scraper::{Html, Selector};
 use std::error::Error;
 use std::sync::Arc;
+
+mod args;
+mod moskino;
+
+use moskino::cinema::MoskinoCinema;
+use moskino::movie::MoskinoMovie;
+use moskino::session::MoskinoSession;
 
 type Errr = Box<dyn Error + Send + Sync>;
 type Res<T> = Result<T, Errr>;
@@ -47,9 +41,13 @@ async fn main() -> Res<()> {
 
     pretty_env_logger::init();
 
-    let db = DB::new().await?;
+    let db = DB::new(dotenv!("DATABASE_URL")).await?;
     let db = Arc::new(db);
-    info!("Connected to DB");
+    info!("DB: connected");
+
+    sqlx::migrate!("../db/migrations").run(&db.conn).await?;
+
+    info!("Trying to parse by date {}", date);
 
     let url = args.day.url_by_day();
     let document = moskino::response(&url).await?;

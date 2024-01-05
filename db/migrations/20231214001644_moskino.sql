@@ -1,6 +1,12 @@
 CREATE SCHEMA IF NOT EXISTS moskino;
 
-CREATE TABLE moskino.cinemas (
+CREATE TABLE IF NOT EXISTS moskino.users (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(255),
+    last_active timestamp NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS moskino.cinemas (
     cinema_id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
     address VARCHAR(255),
@@ -8,7 +14,7 @@ CREATE TABLE moskino.cinemas (
     is_active BOOLEAN
 );
 
-CREATE TABLE moskino.movies (
+CREATE TABLE IF NOT EXISTS moskino.movies (
     movie_id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     year INT,
@@ -26,7 +32,7 @@ CREATE TABLE moskino.movies (
 );
 -- CONSTRAINT unique_title_year UNIQUE (title, year)
 
-CREATE TABLE moskino.sessions (
+CREATE TABLE IF NOT EXISTS moskino.sessions (
     session_id SERIAL PRIMARY KEY,
     movie_id INTEGER REFERENCES moskino.movies(movie_id),
     cinema_id INTEGER REFERENCES moskino.cinemas(cinema_id),
@@ -61,4 +67,5 @@ INSERT INTO moskino.movies (
     'This is a description of the test movie.',
     'http://example.com/moskino/test-movie',
     'http://example.com/kinopoisk/test-movie'
-);
+)
+ON CONFLICT (title, year) DO NOTHING;

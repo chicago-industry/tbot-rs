@@ -107,8 +107,7 @@ impl Cbd for CallbackDataDefault {
         if curr_date == self.date {
             "Сегодня в прокате".to_string()
         } else {
-            let s = format!("{} в прокате", self.date.format_localized("%d.%m (%A)", chrono::Locale::ru_RU));
-            s.to_lowercase()
+            format!("{} в прокате", self.date.format_localized("%d.%m (%A)", chrono::Locale::ru_RU)).to_lowercase()
         }
     }
 }
@@ -168,7 +167,14 @@ impl Cbd for CallbackDataCinema {
     }
 
     fn headline_text(&self) -> String {
-        format!("Фильмы в кинотеатре '{}'", self.cinema.name)
+        let (curr_date, _) = datetime_utc3();
+
+        if curr_date == self.date {
+            format!("Сегодня в кинотеатре {}", self.cinema.name)
+        } else {
+            let text_date = format!("{}", self.date.format_localized("%d.%m (%A)", chrono::Locale::ru_RU),).to_lowercase();
+            format!("{} в кинотеатре {}", text_date, self.cinema.name)
+        }
     }
 }
 

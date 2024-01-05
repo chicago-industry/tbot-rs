@@ -3,7 +3,7 @@ use super::*;
 // bot.edit_message_text(chat.id, id, "⏳").send().await?;
 // tokio::time::sleep(Duration::from_secs(1)).await;
 
-pub fn callbackdata_parse(callback_data: &str) -> Res<(MenuCode, String)> {
+pub fn callback_parse(callback_data: &str) -> Res<(MenuCode, String)> {
     let mut parts = callback_data.split(CD_DELIMETER);
     match (parts.next(), parts.next()) {
         (Some(a), Some(b)) => {

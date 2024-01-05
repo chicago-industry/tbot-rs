@@ -1,0 +1,28 @@
+FROM rust:1.70-buster as builder
+
+WORKDIR /usr/src/moskino-web-parser
+
+COPY web-parser web-parser/
+COPY db db/
+COPY .env web-parser/
+
+# do not analyze sql queries via connecting to DB during compile
+ENV SQLX_OFFLINE=true
+
+RUN cargo install --path web-parser
+
+
+
+
+
+FROM debian:buster-slim
+RUN apt update && apt install -y \
+    openssl \
+    ca-certificates
+
+WORKDIR /usr/local/bin
+
+COPY --from=builder /usr/src/moskino-web-parser/web-parser/target/release/web-parser .
+COPY db/migrations .
+
+CMD ["web-parser"]
