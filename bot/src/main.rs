@@ -2,10 +2,9 @@ extern crate db;
 
 use chrono::NaiveDate;
 use db::{Cinema, MovieShort, DB};
-use dotenv_codegen::dotenv;
 use lazy_static::lazy_static;
 use log::{error, info};
-use std::{convert::TryFrom, error::Error, io, sync::Arc};
+use std::{convert::TryFrom, env, error::Error, io, sync::Arc};
 use teloxide::{
     dispatching::{dialogue, dialogue::InMemStorage},
     payloads::SendMessageSetters,
@@ -22,7 +21,10 @@ use tg::keyboard::*;
 use tg::tools::*;
 
 lazy_static! {
-    static ref DB_ITEMS_PER_PAGE: i64 = dotenv!("DB_ITEMS_PER_PAGE").parse().unwrap();
+    static ref DB_ITEMS_PER_PAGE: i64 = env::var("MOSKINO_BOT_ITEMS_PER_PAGE")
+        .expect("$MOSKINO_BOT_ITEMS_PER_PAGE is not set")
+        .parse()
+        .expect("MOSKINO_BOT_ITEMS_PER_PAGE is wrong");
 }
 
 pub type MyDialogue = Dialogue<State, InMemStorage<State>>;
@@ -55,20 +57,22 @@ pub enum State {
 
 #[tokio::main]
 async fn main() -> Res<()> {
-    println!("DATABASE_URL: {:?}", dotenv!("DATABASE_URL"));
-    println!("DATABASE_URL: {:?}", dotenv!("TELOXIDE_TOKEN"));
-    println!("DATABASE_URL: {:?}", dotenv!("DATABASE_MAX_CONNECTIONS"));
-    println!("DATABASE_URL: {:?}", dotenv!("DB_ITEMS_PER_PAGE"));
-
     pretty_env_logger::init();
 
-    let db = DB::pool(dotenv!("DATABASE_URL"), dotenv!("DATABASE_MAX_CONNECTIONS").parse().unwrap()).await?;
+    let db_url = env::var("DATABASE_URL").expect("$DATABASE_URL is not set");
+    let db_max_conn = env::var("DATABASE_MAX_CONNECTIONS")
+        .expect("$DATABASE_MAX_CONNECTIONS is not set")
+        .parse()
+        .expect("$DATABASE_MAX_CONNECTIONS is wrong");
+    let tg_token = env::var("TELOXIDE_TOKEN").expect("$TELOXIDE_TOKEN is not set");
+
+    let db = DB::pool(&db_url, db_max_conn).await?;
     let db = Arc::new(db);
     info!("DB: connected");
 
     sqlx::migrate!("../db/migrations").run(&db.conn).await?;
 
-    let bot = Bot::new(dotenv!("TELOXIDE_TOKEN"));
+    let bot = Bot::new(tg_token);
     info!("TG: token accepted");
 
     let handler = dialogue::enter::<Update, InMemStorage<State>, State, _>()

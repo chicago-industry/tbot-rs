@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  rustapp:
+  bot:
     env_file:
       - .env
     environment:
@@ -13,10 +13,11 @@ services:
       dockerfile: Dockerfile.bot
     depends_on:
       - db
+
   web-parser:
-    entrypoint: /bin/sh
     # web-parser will scrap for today by default
     # WEB_PARSER_ARG= [today | tommorow | aftertommorow]
+    entrypoint: /bin/sh
     command: -c "web-parser --day $WEB_PARSER_ARG"
     env_file:
       - .env
@@ -29,17 +30,20 @@ services:
       dockerfile: Dockerfile.web
     depends_on:
       - db
+
   db:
     container_name: db
     image: postgres:12
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres #HERE
-      POSTGRES_PASSWORD: "U,ryVX-@i5Gjv>Z"
-      POSTGRES_DB: postgres #HERE
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
     ports:
-      - '5432:5432' #[HERE]
+      - '${POSTGRES_PORT}:${POSTGRES_PORT}'
     volumes:
-      - /home/majstem/postgres_data postgres:/var/lib/postgresql/data #HERE
+      - ${POSTGRES_DATA_LOCATION}:/var/lib/postgresql/data
 
 # volumes:
   # pgdata: {}

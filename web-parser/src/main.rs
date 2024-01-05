@@ -5,12 +5,10 @@ extern crate db;
 use chrono::NaiveDate;
 use clap::Parser;
 use db::DB;
-use dotenv_codegen::dotenv;
 use lazy_static::lazy_static;
 use log::{error, info};
 use scraper::{Html, Selector};
-use std::error::Error;
-use std::sync::Arc;
+use std::{env, error::Error, sync::Arc};
 
 mod args;
 mod moskino;
@@ -41,7 +39,8 @@ async fn main() -> Res<()> {
 
     pretty_env_logger::init();
 
-    let db = DB::new(dotenv!("DATABASE_URL")).await?;
+    let db_url = env::var("DATABASE_URL").expect("$DATABASE_URL is not set");
+    let db = DB::new(&db_url).await?;
     let db = Arc::new(db);
     info!("DB: connected");
 

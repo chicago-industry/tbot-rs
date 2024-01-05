@@ -4,7 +4,6 @@ WORKDIR /usr/src/moskino-web-parser
 
 COPY web-parser web-parser/
 COPY db db/
-COPY .env web-parser/
 
 # do not analyze sql queries via connecting to DB during compile
 ENV SQLX_OFFLINE=true

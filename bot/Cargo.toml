@@ -16,8 +16,6 @@ tokio = { version =  "1.8", features = ["rt-multi-thread", "macros"] }
 sqlx = {version = "0.7.2", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
 async-trait = "0.1.74"
 url = "2.5"
-dotenv="0.15"
-dotenv_codegen="0.15"
 
 # Для преобразования целочисленных типов в enum
 num = "0.4"

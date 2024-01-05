@@ -4,7 +4,6 @@ WORKDIR /usr/src/moskino-tg-bot
 
 COPY bot bot/
 COPY db db/
-COPY .env bot/
 
 # do not analyze sql queries via connecting to DB during compile
 ENV SQLX_OFFLINE=true
