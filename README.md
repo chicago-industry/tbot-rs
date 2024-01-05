@@ -19,3 +19,11 @@ TELOXIDE_TOKEN=<TELEGRAM BOT TOKEN>
 # bot app
 MOSKINO_BOT_ITEMS_PER_PAGE=4
 ```
+
+## run
+```
+WEB_PARSER_ARG=today docker compose up web-parser
+WEB_PARSER_ARG=tommorow docker compose up web-parser
+WEB_PARSER_ARG=aftertommorow docker compose up web-parser
+docker compose up bot
+```
