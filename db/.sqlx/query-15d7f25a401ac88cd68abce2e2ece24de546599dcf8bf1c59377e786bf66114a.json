@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO\n                moskino.cinemas (name, is_active)\n            VALUES\n                ($1, true)\n            ON CONFLICT (name) DO UPDATE\n            SET\n                name = excluded.name\n            RETURNING\n                cinema_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cinema_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "15d7f25a401ac88cd68abce2e2ece24de546599dcf8bf1c59377e786bf66114a"
+}

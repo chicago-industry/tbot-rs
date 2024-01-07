@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  bot:
+    env_file:
+      - .env
+    environment:
+      - RUST_LOG=info
+    container_name: tg-moskino-bot
+    image: m1c/tg-moskino-bot:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    depends_on:
+      - db
+
+  web-parser:
+    # web-parser will scrap for today by default
+    # WEB_PARSER_ARG= [today | tommorow | aftertommorow]
+    entrypoint: /bin/sh
+    command: -c "web-parser --day $WEB_PARSER_ARG"
+    env_file:
+      - .env
+    environment:
+      - RUST_LOG=info
+    container_name: web-parser
+    image: m1c/web-parser:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - db
+
+  db:
+    container_name: db
+    image: postgres:12
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+    ports:
+      - '${POSTGRES_PORT}:${POSTGRES_PORT}'
+    volumes:
+      - ${POSTGRES_DATA_LOCATION}:/var/lib/postgresql/data

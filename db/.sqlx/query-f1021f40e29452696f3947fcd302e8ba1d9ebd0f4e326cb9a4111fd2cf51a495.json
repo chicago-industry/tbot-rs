@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO\n                moskino.sessions (cinema_id, movie_id, showdate, showtime, price)\n            VALUES\n                ($1, $2, $3, $4, $5);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Date",
+        "Time",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f1021f40e29452696f3947fcd302e8ba1d9ebd0f4e326cb9a4111fd2cf51a495"
+}

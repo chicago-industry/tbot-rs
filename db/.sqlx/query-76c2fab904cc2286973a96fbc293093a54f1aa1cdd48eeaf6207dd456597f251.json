@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                c.name as cinema_name,\n                s.showtime as showtime,\n                s.showdate as showdate,\n                s.price as price\n            FROM\n                moskino.sessions s\n            JOIN\n                moskino.movies m ON s.movie_id = m.movie_id\n            JOIN\n                moskino.cinemas c ON s.cinema_id = c.cinema_id\n            WHERE\n            \ts.movie_id = $1\n            AND\n            \ts.showdate = $2\n            AND\n                s.showtime >= $3\n            ORDER BY\n                cinema_name, showtime;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cinema_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "showtime",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 2,
+        "name": "showdate",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Date",
+        "Time"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "76c2fab904cc2286973a96fbc293093a54f1aa1cdd48eeaf6207dd456597f251"
+}

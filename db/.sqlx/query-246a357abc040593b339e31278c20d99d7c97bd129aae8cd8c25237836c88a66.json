@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                name\n            FROM\n                moskino.cinemas\n            WHERE\n                cinema_id = $1\n            AND\n                is_active = true\n            ;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "246a357abc040593b339e31278c20d99d7c97bd129aae8cd8c25237836c88a66"
+}

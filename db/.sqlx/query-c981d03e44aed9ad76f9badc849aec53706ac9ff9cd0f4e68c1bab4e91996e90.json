@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO\n                moskino.users (id, username, last_active)\n            VALUES\n                ($1, $2, $3)\n            ON CONFLICT (id) DO UPDATE\n            SET\n                username = EXCLUDED.username,\n                last_active = EXCLUDED.last_active;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c981d03e44aed9ad76f9badc849aec53706ac9ff9cd0f4e68c1bab4e91996e90"
+}

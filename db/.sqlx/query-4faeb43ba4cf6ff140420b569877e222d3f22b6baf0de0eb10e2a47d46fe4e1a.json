@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT\n                m.movie_id as id,\n                m.title\n            FROM\n                moskino.movies m\n            JOIN\n                moskino.sessions s ON m.movie_id = s.movie_id\n            WHERE\n                s.showdate = $1\n            AND\n                s.showtime >= $2\n            LIMIT\n                $3\n            OFFSET\n                $4\n            ;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Time",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4faeb43ba4cf6ff140420b569877e222d3f22b6baf0de0eb10e2a47d46fe4e1a"
+}
